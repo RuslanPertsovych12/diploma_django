@@ -1,1 +1,1 @@
-web: gunicorn volunteer.volunteer.wsgi:application --chdir volunteer
+web: gunicorn volunteer.volunteer.wsgi:application
