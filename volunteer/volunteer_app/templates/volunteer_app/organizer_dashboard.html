@@ -1,0 +1,985 @@
+{% load static %}
+
+<!doctype html>
+<html lang="uk">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Панель Організатора - VolunTeer</title>
+  <link rel="stylesheet" href="{% static 'volunteer_app/auth.css' %}" />
+  <link rel="stylesheet" href="{% static 'volunteer_app/dashboard.css' %}" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    .event-card-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .btn-sm {
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      text-decoration: none;
+    }
+
+    .btn-sm:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      filter: brightness(1.1);
+    }
+
+    .btn-edit {
+      background: #4f46e5;
+      color: white;
+    }
+
+    .btn-delete {
+      background: #ef4444;
+      color: white;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background-color: white;
+      padding: 30px;
+      border-radius: 15px;
+      width: 500px;
+      max-width: 90%;
+    }
+
+    .create-btn-area {
+      margin-bottom: 20px;
+      text-align: right;
+    }
+
+    /* Tab Styles */
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .nav-links a {
+      cursor: pointer;
+    }
+
+    /* Calendar Styles */
+    .calendar-controls {
+      display: flex;
+      align-items: center;
+      background: #f3f4f6;
+      padding: 8px 15px;
+      border-radius: 12px;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+    }
+
+    .calendar-controls span {
+      min-width: 140px;
+      text-align: center;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+
+    .calendar-controls .btn-sm {
+      background: white;
+      border: 1px solid #e5e7eb;
+      color: var(--text-dark);
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .calendar-controls .btn-sm:hover {
+      background: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
+    }
+
+    .calendar-container {
+      background: white;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.03);
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+    }
+
+    .calendar-day-head {
+      font-weight: bold;
+      text-align: center;
+      padding: 10px;
+      color: var(--text-secondary);
+    }
+
+    .calendar-day {
+      min-height: 100px;
+      border: 1px solid #eee;
+      border-radius: 8px;
+      padding: 5px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .calendar-day:hover {
+      background: #f9fafb;
+    }
+
+    .calendar-day.today {
+      border-color: var(--primary-color);
+      background: #f5f3ff;
+    }
+
+    .event-tag {
+      background: var(--primary-color);
+      color: white;
+      font-size: 11px;
+      padding: 2px 5px;
+      border-radius: 4px;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Alert styles */
+    .alert {
+      padding: 15px;
+      margin-bottom: 20px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+    }
+
+    .alert-success {
+      background-color: #d1fae5;
+      color: #065f46;
+      border-color: #a7f3d0;
+    }
+
+    .alert-error,
+    .alert-danger {
+      background-color: #fee2e2;
+      color: #991b1b;
+      border-color: #fecaca;
+    }
+
+    .alert-info,
+    .alert-warning {
+      background-color: #e0e7ff;
+      color: #3730a3;
+      border-color: #c7d2fe;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar" style="z-index: 10000;">
+    <div class="logo">
+      <i class="fas fa-hand-holding-heart"></i>
+      <span>{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.username }}{% endif %}
+        <small style="font-size: 10px; display: block; margin-top: -5px">ОРГАНІЗАТОР</small></span>
+    </div>
+    <ul class="nav-links">
+      <li>
+        <a href="#" class="nav-tab active" data-tab="events" id="nav-events"><i class="fas fa-calendar-check"></i> Мої
+          Події</a>
+      </li>
+      <li>
+        <a href="#" class="nav-tab" data-tab="schedule" id="nav-schedule"><i class="fas fa-calendar-alt"></i> Розклад</a>
+      </li>
+      <li>
+        <a href="#" class="nav-tab" data-tab="applicants" id="nav-applicants"><i class="fas fa-users-cog"></i> Заявки</a>
+      </li>
+      <li>
+        <a href="#" class="nav-tab" data-tab="messages" id="nav-messages"><i class="fas fa-envelope"></i> Повідомлення</a>
+      </li>
+      <li style="margin-top: 50px">
+        <a href="{% url 'logout' %}" style="color: #ef4444"><i class="fas fa-sign-out-alt"></i> Вихід</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <div class="brand">
+          <h2>Управління подіями</h2>
+        </div>
+      </div>
+
+      <div class="top-bar-right">
+        <div class="user-card">
+          <div class="avatar" role="button" tabindex="0" aria-label="Відкрити меню" onclick="toggleUserMenu(this)">
+            {% if user.get_full_name %}
+            <img src="https://ui-avatars.com/api/?name={{ user.get_full_name|escapejs }}&background=ec4899&color=fff" alt="{{ user.get_full_name }}" />
+            {% else %}
+            <img src="https://ui-avatars.com/api/?name={{ user.username|escapejs }}&background=ec4899&color=fff" alt="{{ user.username }}" />
+            {% endif %}
+          </div>
+          <div class="user-meta">
+            <div class="user-name">Організатор</div>
+            <div class="user-role">{% if profile %}{{ profile.user.get_full_name|default:user.username }}{% else %}{{ user.username }}{% endif %}</div>
+          </div>
+
+          <div class="user-menu" aria-hidden="true" id="user-menu">
+            <div style="padding: 15px; border-bottom: 1px solid #eee; text-align: center;">
+              <div style="font-weight: 600; color: var(--primary-color);">{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.username }}{% endif %}</div>
+              <div style="font-size: 12px; color: #666;">{{ user.email }}</div>
+            </div>
+            <a href="{% url 'profile' %}"><i class="fas fa-user"></i> Профіль</a>
+            <a href="{% url 'settings' %}"><i class="fas fa-cog"></i> Налаштування</a>
+            <div class="divider"></div>
+            <form action="{% url 'logout' %}" method="post" style="display: block;">
+              {% csrf_token %}
+              <button type="submit" style="
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    color: #ef4444;
+                    padding: 8px 15px;
+                    width: 100%;
+                    text-align: left;
+                    font-size: 14px;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                  ">
+                <i class="fas fa-sign-out-alt"></i> Вихід
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    {% if messages %}
+    <div class="messages" style="padding: 0 20px;">
+      {% for message in messages %}
+      <div class="alert {% if message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %}">
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Events Tab -->
+    <div id="events" class="tab-content active">
+      <div class="create-btn-area">
+        <button class="auth-btn" style="width: auto; padding: 10px 20px" onclick="openCreateModal()">
+          + Створити нову подію
+        </button>
+      </div>
+
+      <div class="cards" id="events-container">
+        <!-- Event cards will be dynamically injected here -->
+      </div>
+    </div>
+
+    <!-- Schedule Tab -->
+    <div id="schedule" class="tab-content">
+      <div class="section-header" style="justify-content: center; flex-direction: column; gap: 15px">
+        <h3>Розклад волонтерства</h3>
+        <div class="calendar-controls">
+          <button class="btn-sm" onclick="prevMonth()">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <span id="current-month-year">Лютий 2026</span>
+          <button class="btn-sm" onclick="nextMonth()">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+        <button class="auth-btn" style="width: auto; padding: 10px 20px" onclick="openCalendarModalForNew()">
+          + Додати волонтерство
+        </button>
+      </div>
+
+      <div class="calendar-container">
+        <div class="calendar-grid" id="calendar-grid">
+          <!-- Day headers -->
+          <div class="calendar-day-head">Пн</div>
+          <div class="calendar-day-head">Вт</div>
+          <div class="calendar-day-head">Ср</div>
+          <div class="calendar-day-head">Чт</div>
+          <div class="calendar-day-head">Пт</div>
+          <div class="calendar-day-head">Сб</div>
+          <div class="calendar-day-head">Нд</div>
+          <!-- Days will be injected here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Applicants Tab -->
+    <div id="applicants" class="tab-content">
+      <div class="recent-grid">
+        <div class="section-header">
+          <h3>Заявки на участь</h3>
+        </div>
+
+        <table id="applicants-table">
+          <thead>
+            <tr>
+              <th>Волонтер</th>
+              <th>Подія</th>
+              <th>Дата заявки</th>
+              <th>Дії</th>
+            </tr>
+          </thead>
+          <tbody id="applicants-table-body">
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Messages Tab -->
+    <div id="messages" class="tab-content">
+      <div class="section-header">
+        <h3>Повідомлення від адміністрації</h3>
+      </div>
+      <div class="cards" style="display: flex; flex-direction: column; gap: 15px">
+        <div class="card" style="display: block; border-left: 4px solid var(--primary-color)">
+          <div style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              ">
+            <h4 style="color: var(--primary-color)">Важливе оновлення!</h4>
+            <small style="color: var(--text-secondary)">Сьогодні, 10:15</small>
+          </div>
+          <p style="margin-top: 10px; font-size: 14px">
+            Будь ласка, оновіть інформацію про ваші активні заходи до кінця
+            тижня. Це необхідно для формування місячного звіту.
+          </p>
+        </div>
+        <div class="card" style="display: block; opacity: 0.7">
+          <div style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              ">
+            <h4 style="color: var(--text-dark)">Запит підтверджено</h4>
+            <small style="color: var(--text-secondary)">05.02.2026</small>
+          </div>
+          <p style="margin-top: 10px; font-size: 14px">
+            Ваша заявка на реєстрацію нової події "Еко-день" була схвалена
+            адміністратором.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create Event Modal -->
+  <div id="create-event-modal" class="modal">
+    <div class="modal-content">
+      <h3 style="margin-bottom: 20px">Створити новий захід</h3>
+      <form id="create-event-form" action="{% url 'create_project' %}" method="POST">
+        {% csrf_token %}
+        <div class="form-group">
+          <label>Назва заходу</label>
+          <input type="text" name="name" id="event-name" class="form-control" style="margin-bottom: 15px"
+            placeholder="Введіть назву..." required />
+        </div>
+        <div class="form-group">
+          <label>Дата проведення</label>
+          <input type="datetime-local" name="date" id="event-date" class="form-control" style="margin-bottom: 15px"
+            required />
+        </div>
+        <div class="form-group">
+          <label>Години</label>
+          <input type="number" name="hours" id="event-hours" class="form-control" style="margin-bottom: 15px"
+            placeholder="Кількість годин..." required />
+        </div>
+        <div class="form-group">
+          <label>Потрібно волонтерів</label>
+          <input type="number" name="max_volunteers" id="event-max-volunteers" class="form-control" style="margin-bottom: 15px"
+            placeholder="Кількість волонтерів (0 - без обмежень)" min="0" value="0" required />
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 20px">
+          <button type="submit" class="auth-btn" style="margin: 0; flex: 1">
+            Створити
+          </button>
+          <button type="button" class="auth-btn btn-delete" style="margin: 0; flex: 1" onclick="closeCreateModal()">
+            Скасувати
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Calendar Event Modal -->
+  <div id="calendar-event-modal" class="modal">
+    <div class="modal-content">
+      <h3 style="margin-bottom: 20px">Створити волонтерство</h3>
+      <p style="margin-bottom: 15px; color: var(--text-secondary)">Дата: <span id="calendar-modal-date"></span></p>
+      <form id="calendar-event-form" action="{% url 'create_project' %}" method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="date" id="calendar-modal-date-input" />
+        <div class="form-group">
+          <label>Назва заходу</label>
+          <input type="text" name="name" id="calendar-event-name" class="form-control" style="margin-bottom: 15px"
+            placeholder="Введіть назву..." required />
+        </div>
+        <div class="form-group">
+          <label>Години</label>
+          <input type="number" name="hours" id="calendar-event-hours" class="form-control" style="margin-bottom: 15px"
+            placeholder="Кількість годин..." required />
+        </div>
+        <div class="form-group">
+          <label>Потрібно волонтерів</label>
+          <input type="number" name="max_volunteers" id="calendar-event-max-volunteers" class="form-control" style="margin-bottom: 15px"
+            placeholder="Кількість волонтерів (0 - без обмежень)" min="0" value="0" required />
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 20px">
+          <button type="submit" class="auth-btn" style="margin: 0; flex: 1">
+            Створити
+          </button>
+          <button type="button" class="auth-btn btn-delete" style="margin: 0; flex: 1" onclick="closeCalendarModal()">
+            Скасувати
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Event Details Modal -->
+  <div id="event-details-modal" class="modal">
+    <div class="modal-content" style="width: 500px">
+      <div style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+          ">
+        <h3 id="detail-event-name">Деталі події</h3>
+        <button class="btn-sm" style="background: none; border: none; font-size: 1.2em" onclick="closeDetailModal()">
+          &times;
+        </button>
+      </div>
+
+      <div style="margin-bottom: 20px">
+        <label style="display: block; font-weight: 600; margin-bottom: 5px">Записані волонтери:</label>
+        <div id="volunteers-list" style="
+              max-height: 150px;
+              overflow-y: auto;
+              border: 1px solid #eee;
+              padding: 10px;
+              border-radius: 8px;
+            ">
+          <div style="padding: 5px 0; border-bottom: 1px solid #f9f9f9">
+            Іван Петренко (Група ПІ-21)
+          </div>
+          <div style="padding: 5px 0; border-bottom: 1px solid #f9f9f9">
+            Марія Коваль (Група КН-22)
+          </div>
+          <div style="padding: 5px 0">Олексій Бондар (Група ПІ-21)</div>
+        </div>
+      </div>
+
+      <hr style="margin-bottom: 20px; border: 0; border-top: 1px solid #eee" />
+
+      <h4 style="margin-bottom: 15px">Редагувати подію</h4>
+      <div class="form-group">
+        <label>Змінити назву</label>
+        <input type="text" id="edit-event-name" class="form-control" style="margin-bottom: 15px" />
+        <label>Змінити дату</label>
+        <input type="date" id="edit-event-date" class="form-control" style="margin-bottom: 15px" />
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 20px">
+        <button class="auth-btn" style="margin: 0; flex: 1" onclick="saveEventChanges()">
+          Зберегти зміни
+        </button>
+        <button class="auth-btn btn-delete" style="margin: 0; flex: 1" onclick="deleteEvent()">
+          Видалити
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    console.log('Organizer dashboard starting...');
+    
+    try {
+    
+    function switchTab(tabId) {
+      console.log('Organizer switching to tab:', tabId);
+      var targetTab = document.getElementById(tabId);
+      if (!targetTab) {
+        console.error('Tab not found:', tabId);
+        return;
+      }
+      
+      document.querySelectorAll(".tab-content").forEach((tab) => {
+        tab.classList.remove("active");
+      });
+      targetTab.classList.add("active");
+
+      document.querySelectorAll(".nav-links a").forEach((link) => {
+        link.classList.remove("active");
+      });
+      var navLink = document.getElementById("nav-" + tabId);
+      if (navLink) {
+        navLink.classList.add("active");
+      }
+
+      if (tabId === "applicants") {
+        renderApplicants();
+      }
+      if (tabId === "schedule") {
+        renderCalendar();
+      }
+    }
+
+    function openCreateModal() {
+      document.getElementById("create-event-modal").style.display = "flex";
+    }
+
+    function closeCreateModal() {
+      document.getElementById("create-event-modal").style.display = "none";
+    }
+
+    // Close modals on form submission (with null checks)
+    const createForm = document.getElementById('create-event-form');
+    if (createForm) {
+      createForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        
+        fetch("{% url 'create_project' %}", {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+          }
+        }).then(response => {
+          if (response.ok) {
+            closeCreateModal();
+            window.location.reload();
+          }
+        }).catch(err => {
+          console.error('Error:', err);
+          this.submit();
+        });
+      });
+    }
+
+    const calendarForm = document.getElementById('calendar-event-form');
+    if (calendarForm) {
+      calendarForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        
+        fetch("{% url 'create_project' %}", {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+          }
+        }).then(response => {
+          if (response.ok) {
+            closeCalendarModal();
+            window.location.reload();
+          }
+        }).catch(err => {
+          console.error('Error:', err);
+          this.submit();
+        });
+      });
+    }
+
+    let editingEventId = null;
+    function viewEventDetails(id) {
+      editingEventId = id;
+      const ev = eventsDataList.find((e) => e.id === id);
+      if (!ev) return;
+
+      document.getElementById("detail-event-name").innerText = ev.name;
+      document.getElementById("edit-event-name").value = ev.name;
+      document.getElementById("edit-event-date").value = ev.date;
+      document.getElementById("event-details-modal").style.display = "flex";
+    }
+
+    function closeDetailModal() {
+      document.getElementById("event-details-modal").style.display = "none";
+      editingEventId = null;
+    }
+
+    function saveEventChanges() {
+      const newName = document.getElementById("edit-event-name").value;
+      const newDate = document.getElementById("edit-event-date").value;
+
+      if (editingEventId && newName && newDate) {
+        const evIndex = eventsDataList.findIndex(
+          (e) => e.id === editingEventId,
+        );
+        if (evIndex !== -1) {
+          eventsDataList[evIndex].name = newName;
+          eventsDataList[evIndex].date = newDate;
+
+          renderEventCards();
+          renderCalendar();
+          alert("Зміни успішно збережено!");
+          closeDetailModal();
+        }
+      }
+    }
+
+    function deleteEvent(id) {
+      if (confirm(`Ви впевнені, що хочете видалити цей захід?`)) {
+        const idx = eventsDataList.findIndex((e) => e.id === id);
+        if (idx !== -1) {
+          eventsDataList.splice(idx, 1);
+          renderEventCards();
+          renderCalendar();
+          alert("Захід видалено!");
+        }
+      }
+    }
+
+    let applicantsDataList = [
+      {% for app in applicants %}{% if not forloop.first %},{% endif %}{
+      id: {{ app.id }},
+      name: "{{ app.Volunteer.get_full_name|default:app.Volunteer.username|escapejs }}",
+      event: "{{ app.event.name|escapejs }}",
+      date: "{{ app.date_requested|date:'d.m.Y' }}",
+      status: "{{ app.get_status_display|escapejs }}"
+      }{% endfor %}
+    ];
+
+    function renderApplicants() {
+      const tbody = document.getElementById("applicants-table-body");
+      if (!tbody) return;
+
+      tbody.innerHTML = "";
+      applicantsDataList.forEach((app) => {
+        const tr = document.createElement("tr");
+        let statusClass = "pending";
+        if (app.status === "Схвалено") statusClass = "active";
+        if (app.status === "Відхилено") statusClass = "completed";
+
+        tr.innerHTML = `
+                    <td>${app.name}</td>
+                    <td>${app.event}</td>
+                    <td>${app.date}</td>
+                    <td><span class="status ${statusClass}">${app.status}</span></td>
+                    <td>
+                        ${app.status === "В очікуванні"
+            ? `
+                            <button class="btn-sm btn-edit" title="Схвалити" onclick="approveVolunteer(${app.id})"><i class="fas fa-check"></i></button>
+                            <button class="btn-sm btn-delete" title="Відхилити" onclick="rejectVolunteer(${app.id})"><i class="fas fa-times"></i></button>
+                        `
+            : '<small style="color: #6b7280; font-style: italic;">Опрацьовано</small>'
+          }
+                    </td>
+                `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function approveVolunteer(id) {
+      window.location.href = `/manage-request/${id}/approve/`;
+    }
+    function rejectVolunteer(id) {
+      if (confirm("Ви впевнені, що хочете відхилити цю заявку?")) {
+        window.location.href = `/manage-request/${id}/reject/`;
+      }
+    }
+
+    function deleteEvent(id) {
+      if (confirm(`Ви впевнені, що хочете видалити цей захід?`)) {
+        window.location.href = `/delete-project/${id}/`;
+      }
+    }
+
+    let eventsDataList = [
+      {% for p in projects %}{% if not forloop.first %},{% endif %}{
+      id: {{ p.id }},
+      name: "{{ p.name|escapejs }}",
+      org: "{{ p.organiser.get_full_name|default:p.organiser.username|escapejs }}",
+      date: "{{ p.date|date:'Y-m-d' }}",
+      volunteers: {{ p.requests.count }},
+      max_volunteers: {{ p.max_volunteers }},
+      icon: "fas fa-calendar-check",
+      bg: "#e0e7ff",
+      color: "var(--primary-color)"
+      }{% endfor %}
+    ];
+
+    function renderEventCards() {
+      const container = document.getElementById("events-container");
+      if (!container) return;
+
+      container.innerHTML = "";
+      eventsDataList.forEach((ev) => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.style.display = "block";
+        card.style.cursor = "pointer";
+        card.onclick = () => viewEventDetails(ev.id);
+
+        card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div class="card-info">
+                            <h3>${ev.name}</h3>
+                            <p>${ev.volunteers} / ${ev.max_volunteers === 0 ? '∞' : ev.max_volunteers} волонтерів</p>
+                            <small style="color: var(--text-secondary);"><i class="far fa-clock"></i> ${ev.date}</small>
+                        </div>
+                        <div class="card-icon" style="background: ${ev.bg}; color: ${ev.color};">
+                            <i class="${ev.icon}"></i>
+                        </div>
+                    </div>
+                `;
+        container.appendChild(card);
+      });
+    }
+
+    let reportSortDirection = 1;
+    function sortReports(colIndex) {
+      const table = document.getElementById("reports-table");
+      const tbody = table.querySelector("tbody");
+      const rows = Array.from(tbody.querySelectorAll("tr"));
+
+      rows.sort((a, b) => {
+        const valA = a.cells[colIndex].innerText.trim();
+        const valB = b.cells[colIndex].innerText.trim();
+        if (colIndex === 2) {
+          return (parseFloat(valA) - parseFloat(valB)) * reportSortDirection;
+        }
+        return valA.localeCompare(valB, "uk") * reportSortDirection;
+      });
+
+      reportSortDirection *= -1;
+
+      tbody.innerHTML = "";
+      rows.forEach((row) => tbody.appendChild(row));
+
+      const icon = table.querySelector("thead i");
+      icon.className =
+        reportSortDirection === 1 ? "fas fa-sort-up" : "fas fa-sort-down";
+    }
+
+    function filterReportsByGroup() {
+      const filterValue = document.getElementById("reportGroupFilter").value;
+      const tableRows = document.querySelectorAll("#reports-table tbody tr");
+
+      tableRows.forEach((row) => {
+        const group = row.cells[0].innerText.trim();
+        if (filterValue === "all" || group === filterValue) {
+          row.style.display = "";
+        } else {
+          row.style.display = "none";
+        }
+      });
+    }
+
+    // Calendar Logic
+    let currentDate = new Date();
+
+    function renderCalendar() {
+      const grid = document.getElementById("calendar-grid");
+      const monthYear = document.getElementById("current-month-year");
+
+      if (!grid || !monthYear) return;
+
+      // Clear existing days (keep headers)
+      const headers = grid.querySelectorAll(".calendar-day-head");
+      grid.innerHTML = "";
+      headers.forEach((h) => grid.appendChild(h));
+
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+
+      const monthNames = [
+        "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
+        "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
+      ];
+      monthYear.innerText = `${monthNames[month]} ${year}`;
+
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      let startDay = firstDay === 0 ? 6 : firstDay - 1;
+
+      for (let i = 0; i < startDay; i++) {
+        const empty = document.createElement("div");
+        grid.appendChild(empty);
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dayEl = document.createElement("div");
+        dayEl.className = "calendar-day";
+        const dateHeader = document.createElement("div");
+        dateHeader.style.fontWeight = "bold";
+        dateHeader.innerText = day;
+        dayEl.appendChild(dateHeader);
+
+        const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+        eventsDataList
+          .filter((ev) => ev.date === dateStr)
+          .forEach((ev) => {
+            const tag = document.createElement("div");
+            tag.className = "event-tag";
+            tag.innerText = ev.name;
+            dayEl.appendChild(tag);
+          });
+
+        dayEl.onclick = () => openCalendarModal(dateStr);
+        grid.appendChild(dayEl);
+      }
+    }
+
+    function prevMonth() {
+      currentDate.setMonth(currentDate.getMonth() - 1);
+      renderCalendar();
+    }
+
+    function nextMonth() {
+      currentDate.setMonth(currentDate.getMonth() + 1);
+      renderCalendar();
+    }
+
+    let selectedCalendarDate = "";
+    function openCalendarModal(dateStr) {
+      selectedCalendarDate = dateStr;
+      const modal = document.getElementById("calendar-event-modal");
+      const modalDate = document.getElementById("calendar-modal-date");
+      const modalDateInput = document.getElementById("calendar-modal-date-input");
+
+      modalDate.innerText = dateStr;
+      modalDateInput.value = `${dateStr}T12:00`;
+
+      document.getElementById("calendar-event-name").value = "";
+      document.getElementById("calendar-event-hours").value = "";
+      document.getElementById("calendar-event-max-volunteers").value = "0";
+
+      modal.style.display = "flex";
+    }
+
+    function closeCalendarModal() {
+      document.getElementById("calendar-event-modal").style.display = "none";
+    }
+
+    function openCalendarModalForNew() {
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      openCalendarModal(dateStr);
+    }
+
+    // User menu toggle
+    function toggleUserMenu(avatar) {
+      var menu = document.getElementById('user-menu');
+      if (menu.style.display === 'block') {
+        menu.style.display = 'none';
+      } else {
+        menu.style.display = 'block';
+      }
+    }
+
+    // Close menu when clicking outside
+    document.addEventListener('click', function(e) {
+      var menu = document.getElementById('user-menu');
+      var avatar = document.querySelector('.avatar');
+      if (menu && !menu.contains(e.target) && !avatar.contains(e.target)) {
+        menu.style.display = 'none';
+      }
+    });
+
+    // Initialize
+    // Close all modals on page load
+    var createModal = document.getElementById("create-event-modal");
+    var detailModal = document.getElementById("event-details-modal");
+    var calendarModal = document.getElementById("calendar-event-modal");
+    
+    if (createModal) createModal.style.display = "none";
+    if (detailModal) detailModal.style.display = "none";
+    if (calendarModal) calendarModal.style.display = "none";
+    
+    // Close modal when clicking outside
+    if (createModal) {
+      createModal.addEventListener('click', function(e) {
+        if (e.target === this) closeCreateModal();
+      });
+    }
+    if (detailModal) {
+      detailModal.addEventListener('click', function(e) {
+        if (e.target === this) closeDetailModal();
+      });
+    }
+    if (calendarModal) {
+      calendarModal.addEventListener('click', function(e) {
+        if (e.target === this) closeCalendarModal();
+      });
+    }
+    
+    // Navigation tab click handlers
+    var navTabs = document.querySelectorAll('.nav-tab');
+    for (var i = 0; i < navTabs.length; i++) {
+        var link = navTabs[i];
+        (function(tabId) {
+            link.onclick = function(e) {
+                e.preventDefault();
+                switchTab(tabId);
+            };
+        })(link.getAttribute('data-tab'));
+    }
+    
+    // Render events and calendar
+    renderEventCards();
+    renderCalendar();
+    renderApplicants();
+    
+    } catch (err) {
+      console.error('Error in organizer dashboard:', err);
+    }
+  </script>
+</body>
+
+</html>

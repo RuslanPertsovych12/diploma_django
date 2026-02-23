@@ -1,0 +1,164 @@
+{% load static %}
+
+<!doctype html>
+<html lang="uk">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Налаштування - VolunTeer</title>
+  <link rel="stylesheet" href="{% static 'volunteer_app/auth.css' %}" />
+  <link rel="stylesheet" href="{% static 'volunteer_app/dashboard.css' %}" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    .settings-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .settings-card {
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+      margin-bottom: 20px;
+    }
+    .settings-card h3 {
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+    }
+    .form-group input[type="text"],
+    .form-group input[type="email"],
+    .form-group input[type="password"] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+    }
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: var(--primary-color);
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .messages {
+      max-width: 800px;
+      margin: 0 auto 20px;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="logo">
+      <i class="fas fa-hand-holding-heart"></i>
+      <span>{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.username }}{% endif %}
+        <small style="font-size: 10px; display: block; margin-top: -5px">
+          {% if profile.role == 'volunteer' %}ВОЛОНТЕР{% elif profile.role == 'organiser' %}ОРГАНІЗАТОР{% elif profile.role == 'admin' %}АДМІН{% endif %}
+        </small>
+      </span>
+    </div>
+    <ul class="nav-links">
+      <li>
+        <a href="{% url 'dashboard' %}"><i class="fas fa-arrow-left"></i> Назад</a>
+      </li>
+      <li>
+        <a href="{% url 'profile' %}"><i class="fas fa-user"></i> Профіль</a>
+      </li>
+      <li>
+        <a href="{% url 'settings' %}" style="background: #eef2ff; color: var(--primary-color);"><i class="fas fa-cog"></i> Налаштування</a>
+      </li>
+      <li style="margin-top: 50px">
+        <a href="{% url 'logout' %}" style="color: #ef4444"><i class="fas fa-sign-out-alt"></i> Вихід</a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <a href="{% url 'dashboard' %}" class="back-btn">
+      <i class="fas fa-arrow-left"></i> Назад до панелі
+    </a>
+    
+    {% if messages %}
+    <div class="messages">
+      {% for message in messages %}
+      <div class="alert {% if message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %}">
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    
+    <div class="settings-container">
+      <!-- Profile Settings -->
+      <div class="settings-card">
+        <h3><i class="fas fa-user-edit"></i> Редагування профілю</h3>
+        <form action="{% url 'update_profile' %}" method="post">
+          {% csrf_token %}
+          <div class="form-group">
+            <label>Ім'я</label>
+            <input type="text" name="first_name" value="{{ user.first_name|default:'' }}" placeholder="Ваше ім'я">
+          </div>
+          <div class="form-group">
+            <label>Прізвище</label>
+            <input type="text" name="last_name" value="{{ user.last_name|default:'' }}" placeholder="Ваше прізвище">
+          </div>
+          {% if profile.role == 'volunteer' %}
+          <div class="form-group">
+            <label>Група</label>
+            <input type="text" name="group_name" value="{{ profile.group_name|default:'' }}" placeholder="Наприклад, ПІ-21">
+          </div>
+          {% endif %}
+          <button type="submit" class="auth-btn" style="margin-top: 10px;">Зберегти профіль</button>
+        </form>
+      </div>
+      
+      <!-- Password Settings -->
+      <div class="settings-card">
+        <h3><i class="fas fa-lock"></i> Зміна пароля</h3>
+        <form action="{% url 'update_password' %}" method="post">
+          {% csrf_token %}
+          <div class="form-group">
+            <label>Новий пароль</label>
+            <input type="password" name="new_password" placeholder="Введіть новий пароль">
+          </div>
+          <div class="form-group">
+            <label>Підтвердження пароля</label>
+            <input type="password" name="confirm_password" placeholder="Повторіть новий пароль">
+          </div>
+          <button type="submit" class="auth-btn" style="margin-top: 10px;">Змінити пароль</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
