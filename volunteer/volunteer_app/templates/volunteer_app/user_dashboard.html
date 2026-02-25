@@ -311,9 +311,6 @@
         <a href="#" class="nav-tab" data-tab="schedule" id="nav-schedule"><i class="fas fa-calendar-alt"></i> Розклад</a>
       </li>
       <li>
-        <a href="#" class="nav-tab" data-tab="achievements" id="nav-achievements"><i class="fas fa-medal"></i> Досягнення</a>
-      </li>
-      <li>
         <a href="#" class="nav-tab" data-tab="rating" id="nav-rating"><i class="fas fa-trophy"></i> Рейтинг учнів</a>
       </li>
       <li style="margin-top: 50px">
@@ -489,7 +486,7 @@
               <td>{{ p.organiser.get_full_name|default:p.organiser.username }}</td>
               <td>{{ p.date|date:"d.m.Y" }}</td>
               <td>{{ p.hours }} год</td>
-              <td>{% if p.max_volunteers == 0 %}∞{% else %}{{ p.max_volunteers }}{% endif %}</td>
+              <td>{% if p.max_volunteers == 0 %}∞{% elif p.current_volunteers >= p.max_volunteers %} волонтерів не потрібно{% else %}{{ p.current_volunteers|default:0 }}/{{ p.max_volunteers }}{% endif %}</td>
               <td>
                 {% if p.application_status == 'approved' %}
                 <span class="status-badge-inline success">Прийнято</span>
@@ -497,6 +494,10 @@
                 <span class="status-badge-inline warning">Заявку подано</span>
                 {% elif p.application_status == 'rejected' %}
                 <span class="status-badge-inline danger">Відхилено</span>
+                {% elif p.application_status == 'completed' %}
+                <span class="status-badge-inline" style="background: #10b981; color: white;">Відпрацьовано</span>
+                {% elif p.max_volunteers > 0 and p.current_volunteers >= p.max_volunteers %}
+                <span class="status-badge-inline" style="background: #6b7280; color: white;">Місць немає</span>
                 {% else %}
                 <a href="{% url 'apply_project' p.id %}" class="btn-sm" style="
                         background: var(--primary-color);
@@ -546,60 +547,6 @@
           <div class="calendar-day-head">Пт</div>
           <div class="calendar-day-head">Сб</div>
           <div class="calendar-day-head">Нд</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Achievements Tab -->
-    <div id="achievements" class="tab-content">
-      <div class="section-header">
-        <h3>Мої досягнення</h3>
-      </div>
-      <div class="achievement-grid">
-        <div class="achievement-card">
-          <i class="fas fa-seedling"></i>
-          <h4>Перші кроки</h4>
-          <p>Завершено перший проект</p>
-        </div>
-        <div class="achievement-card">
-          <i class="fas fa-star"></i>
-          <h4>Активний учасник</h4>
-          <p>Більше 50 годин волонтерства</p>
-        </div>
-        <div class="achievement-card">
-          <i class="fas fa-heart"></i>
-          <h4>Доброчинець</h4>
-          <p>Допомога у 10 різних організаціях</p>
-        </div>
-        <div class="achievement-card">
-          <i class="fas fa-users"></i>
-          <h4>Командний гравець</h4>
-          <p>Участь у 5 групових заходах</p>
-        </div>
-        <div class="achievement-card">
-          <i class="fas fa-bolt"></i>
-          <h4>Супер-волонтер</h4>
-          <p>Понад 100 годин за місяць</p>
-        </div>
-        <div class="achievement-card">
-          <i class="fas fa-hands-helping"></i>
-          <h4>Наставник</h4>
-          <p>Допомога 5 новим волонтерам</p>
-        </div>
-        <div class="achievement-card">
-          <i class="fas fa-fire"></i>
-          <h4>Гарячий тиждень</h4>
-          <p>7 днів активності поспіль</p>
-        </div>
-        <div class="achievement-card locked">
-          <i class="fas fa-award"></i>
-          <h4>Амбасадор добра</h4>
-          <p>Представлення на 3 форумах</p>
-        </div>
-        <div class="achievement-card locked">
-          <i class="fas fa-crown"></i>
-          <h4>Майстер серця</h4>
-          <p>Більше 200 годин (Закрито)</p>
         </div>
       </div>
     </div>
@@ -662,8 +609,8 @@
     // Calendar Logic
     let currentDate = new Date(2026, 1, 1);
     const eventsData = {};
-    {% for p in opportunities %}
-    eventsData["{{ p.date|date:'Y-m-d' }}"] = [{id: {{ p.id }}, name: "{{ p.name|escapejs }}", org: "{{ p.organiser.get_full_name|default:p.organiser.username|escapejs }}", desc: "Кількість годин: {{ p.hours }} | Потрібно: {% if p.max_volunteers == 0 %}∞{% else %}{{ p.max_volunteers }}{% endif %} волонтерів", max_volunteers: {{ p.max_volunteers }}}];
+    {% for p in projects %}
+    eventsData["{{ p.date|date:'Y-m-d' }}"] = [{id: {{ p.id }}, name: "{{ p.name|escapejs }}", org: "{{ p.organiser.get_full_name|default:p.organiser.username|escapejs }}", desc: "Кількість годин: {{ p.hours }} | Потрібно: {% if p.max_volunteers == 0 %}∞{% elif p.current_volunteers >= p.max_volunteers %}волонтерів не потрібно{% else %}{{ p.current_volunteers|default:0 }}/{{ p.max_volunteers }}{% endif %}", max_volunteers: {{ p.max_volunteers }}, current_volunteers: {{ p.current_volunteers|default:0 }}}];
     {% endfor %}
     console.log('Events data:', eventsData);
 
@@ -728,11 +675,15 @@
 
       if (eventsData[dateStr]) {
         eventsData[dateStr].forEach((ev) => {
+          const isFull = ev.max_volunteers > 0 && ev.current_volunteers >= ev.max_volunteers;
+          const buttonHtml = isFull 
+            ? '<span style="display: inline-block; margin-top: 10px; padding: 8px 16px; background: #9ca3af; color: white; border-radius: 6px; font-size: 14px; cursor: not-allowed;">Місць немає</span>'
+            : `<a href="/apply/${ev.id}/" style="display: inline-block; margin-top: 10px; padding: 8px 16px; background: var(--primary-color); color: white; text-decoration: none; border-radius: 6px; font-size: 14px;">Подати заявку</a>`;
           infoEl.innerHTML += `<div style="background: #f9fafb; padding: 15px; border-radius: 10px; margin-bottom: 15px; border-left: 4px solid var(--primary-color);">
             <h4 style="margin: 0 0 10px 0; color: var(--primary-color);">${ev.name}</h4>
             <p style="margin: 5px 0; color: #666; font-size: 14px;"><i class="fas fa-user" style="margin-right: 5px;"></i>${ev.org}</p>
             <p style="margin: 5px 0; color: #666; font-size: 14px;">${ev.desc}</p>
-            <a href="/apply/${ev.id}/" style="display: inline-block; margin-top: 10px; padding: 8px 16px; background: var(--primary-color); color: white; text-decoration: none; border-radius: 6px; font-size: 14px;">Подати заявку</a>
+            ${buttonHtml}
           </div>`;
         });
       } else {

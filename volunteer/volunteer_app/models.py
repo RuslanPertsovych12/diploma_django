@@ -44,6 +44,7 @@ class Project(models.Model):
     date = models.DateTimeField()
     hours = models.PositiveIntegerField()
     max_volunteers = models.PositiveIntegerField(default=0, verbose_name="Максимальна кількість волонтерів (0 - без обмежень)")
+    current_volunteers = models.PositiveIntegerField(default=0, verbose_name="Поточ кількість волонтерів")
     status = models.CharField(max_length=20, choices=ACTION, default='apply')
 
     def __str__(self):
@@ -62,12 +63,17 @@ class Request(models.Model):
     STATUS_CHOICES = [
         ('pending', 'В очікуванні'),
         ('approved', 'Схвалено'),
+        ('completed', 'Відпрацьовано'),
         ('rejected', 'Відхилено'),
     ]
     Volunteer = models.ForeignKey(User, related_name='requests', on_delete=models.CASCADE)
     event = models.ForeignKey(Project, related_name='requests', on_delete=models.DO_NOTHING)
     date_requested = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    approved_hours = models.PositiveIntegerField(null=True, blank=True, verbose_name="Зараховані години")
+    organizer_report = models.TextField(blank=True, null=True, verbose_name="Скарга організатора")
+    organizer_reported = models.BooleanField(default=False, verbose_name="Поскаржено організатором")
+    star_rating = models.BooleanField(default=False, verbose_name="Зірочка за гарну роботу")
 
     def __str__(self):
         return f'{self.Volunteer.username} -> {self.event.name} ({self.status})'

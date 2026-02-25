@@ -237,9 +237,6 @@
       <li>
         <a href="#" class="nav-tab" data-tab="applicants" id="nav-applicants"><i class="fas fa-users-cog"></i> Заявки</a>
       </li>
-      <li>
-        <a href="#" class="nav-tab" data-tab="messages" id="nav-messages"><i class="fas fa-envelope"></i> Повідомлення</a>
-      </li>
       <li style="margin-top: 50px">
         <a href="{% url 'logout' %}" style="color: #ef4444"><i class="fas fa-sign-out-alt"></i> Вихід</a>
       </li>
@@ -378,39 +375,71 @@
       </div>
     </div>
 
-    <!-- Messages Tab -->
-    <div id="messages" class="tab-content">
-      <div class="section-header">
-        <h3>Повідомлення від адміністрації</h3>
-      </div>
-      <div class="cards" style="display: flex; flex-direction: column; gap: 15px">
-        <div class="card" style="display: block; border-left: 4px solid var(--primary-color)">
-          <div style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-              ">
-            <h4 style="color: var(--primary-color)">Важливе оновлення!</h4>
-            <small style="color: var(--text-secondary)">Сьогодні, 10:15</small>
-          </div>
-          <p style="margin-top: 10px; font-size: 14px">
-            Будь ласка, оновіть інформацію про ваші активні заходи до кінця
-            тижня. Це необхідно для формування місячного звіту.
-          </p>
+    <!-- Report Volunteer Modal -->
+    <div id="report-modal" class="modal">
+      <div class="modal-content" style="max-width: 500px; border-top: 5px solid #ef4444;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3 style="margin: 0; color: #ef4444;"><i class="fas fa-flag"></i> Поскаржитись на волонтера</h3>
+          <button type="button" onclick="closeReportModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #9ca3af;">&times;</button>
         </div>
-        <div class="card" style="display: block; opacity: 0.7">
-          <div style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-              ">
-            <h4 style="color: var(--text-dark)">Запит підтверджено</h4>
-            <small style="color: var(--text-secondary)">05.02.2026</small>
+        <div style="background: #fef2f2; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <p style="margin: 0; color: #991b1b;"><i class="fas fa-user"></i> <strong>Волонтер:</strong> <span id="report-volunteer-name"></span></p>
+        </div>
+        <form id="report-form" action="" method="POST">
+          {% csrf_token %}
+          <input type="hidden" name="request_id" id="report-request-id" value="">
+          <div class="form-group">
+            <label style="font-weight: 600; color: #374151; margin-bottom: 8px; display: block;">Причина скарги</label>
+            <textarea name="report" class="form-control" rows="4" placeholder="Опишіть проблему з волонтером (не з'явився, порушив правила, тощо)..." required style="margin-bottom: 15px; border-color: #ef4444;"></textarea>
           </div>
-          <p style="margin-top: 10px; font-size: 14px">
-            Ваша заявка на реєстрацію нової події "Еко-день" була схвалена
-            адміністратором.
-          </p>
+          <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button type="submit" class="btn-action" style="margin: 0; flex: 1; background: #ef4444; border-radius: 8px;"><i class="fas fa-paper-plane"></i> Відправити скаргу</button>
+            <button type="button" class="btn-action" style="margin: 0; flex: 1; background: #6b7280; border-radius: 8px;" onclick="closeReportModal()">Скасувати</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Approve Volunteer Modal -->
+    <div id="approve-modal" class="modal">
+      <div class="modal-content" style="max-width: 400px; border-top: 5px solid #10b981;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3 style="margin: 0; color: #10b981;"><i class="fas fa-check-circle"></i> Схвалити заявку</h3>
+          <button type="button" onclick="closeApproveModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #9ca3af;">&times;</button>
+        </div>
+        <div style="background: #ecfdf5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <p style="margin: 0; color: #065f46;">Вкажіть кількість годин для зарахування волонтеру</p>
+        </div>
+        <div class="form-group">
+          <label style="font-weight: 600; color: #374151; margin-bottom: 8px; display: block;">Кількість годин</label>
+          <input type="number" id="approve-hours" class="form-control" min="1" style="margin-bottom: 15px; border-color: #10b981;" />
+          <input type="hidden" id="approve-request-id" value="" />
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+          <button type="button" class="btn-action" style="margin: 0; flex: 1; background: #10b981; border-radius: 8px;" onclick="approveVolunteer()"><i class="fas fa-check"></i> Схвалити</button>
+          <button type="button" class="btn-action" style="margin: 0; flex: 1; background: #6b7280; border-radius: 8px;" onclick="closeApproveModal()">Скасувати</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Complete Volunteer Modal -->
+    <div id="complete-modal" class="modal">
+      <div class="modal-content" style="max-width: 400px; border-top: 5px solid #6366f1;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3 style="margin: 0; color: #6366f1;"><i class="fas fa-clock"></i> Зарахувати години</h3>
+          <button type="button" onclick="closeCompleteModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #9ca3af;">&times;</button>
+        </div>
+        <div style="background: #eef2ff; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <p style="margin: 0; color: #4338ca;">Вкажіть кількість відпрацьованих годин</p>
+        </div>
+        <div class="form-group">
+          <label style="font-weight: 600; color: #374151; margin-bottom: 8px; display: block;">Кількість годин</label>
+          <input type="number" id="complete-hours" class="form-control" min="1" style="margin-bottom: 15px; border-color: #6366f1;" />
+          <input type="hidden" id="complete-request-id" value="" />
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+          <button type="button" class="btn-action" style="margin: 0; flex: 1; background: #6366f1; border-radius: 8px;" onclick="completeVolunteer()"><i class="fas fa-check"></i> Зарахувати</button>
+          <button type="button" class="btn-action" style="margin: 0; flex: 1; background: #6b7280; border-radius: 8px;" onclick="closeCompleteModal()">Скасувати</button>
         </div>
       </div>
     </div>
@@ -687,9 +716,12 @@
       {% for app in applicants %}{% if not forloop.first %},{% endif %}{
       id: {{ app.id }},
       name: "{{ app.Volunteer.get_full_name|default:app.Volunteer.username|escapejs }}",
+      volunteerUsername: "{{ app.Volunteer.username|escapejs }}",
       event: "{{ app.event.name|escapejs }}",
       date: "{{ app.date_requested|date:'d.m.Y' }}",
-      status: "{{ app.get_status_display|escapejs }}"
+      status: "{{ app.get_status_display|escapejs }}",
+      hours: {{ app.event.hours }},
+      star: {% if app.star_rating %}true{% else %}false{% endif %}
       }{% endfor %}
     ];
 
@@ -702,25 +734,72 @@
         const tr = document.createElement("tr");
         let statusClass = "pending";
         if (app.status === "Схвалено") statusClass = "active";
+        if (app.status === "Відпрацьовано") statusClass = "completed";
         if (app.status === "Відхилено") statusClass = "completed";
 
+        let actions = '';
+        if (app.status === "В очікуванні") {
+          actions = `
+            <button class="btn-sm btn-edit" title="Схвалити" onclick="openApproveModal(${app.id}, ${app.hours})"><i class="fas fa-check"></i></button>
+            <button class="btn-sm btn-delete" title="Відхилити" onclick="rejectVolunteer(${app.id})"><i class="fas fa-times"></i></button>
+          `;
+        } else if (app.status === "Схвалено") {
+          actions = `
+            <button class="btn-sm" style="background: #10b981; color: white;" title="Зарахувати години" onclick="openCompleteModal(${app.id}, ${app.hours})"><i class="fas fa-clock"></i></button>
+            <button class="btn-sm" style="background: #ef4444; color: white;" title="Поскаржитись" onclick="openReportModal(${app.id}, '${app.name}')"><i class="fas fa-flag"></i></button>
+            <button class="btn-sm" style="background: ${app.star ? '#f59e0b' : '#6b7280'}; color: white;" title="Зірочка за гарну роботу" onclick="toggleStar(${app.id})"><i class="fas fa-star"></i></button>
+          `;
+        } else {
+          actions = `<small style="color: #6b7280; font-style: italic;">Опрацьовано</small>`;
+        }
+
         tr.innerHTML = `
-                    <td>${app.name}</td>
+                    <td style="cursor: pointer;" onclick="window.location.href='/user/${app.volunteerUsername}/'">${app.star ? '<i class="fas fa-star" style="color: #f59e0b; margin-right: 5px;"></i>' : ''}<a href="/user/${app.volunteerUsername}/" style="color: inherit; text-decoration: none;">${app.name}</a></td>
                     <td>${app.event}</td>
                     <td>${app.date}</td>
                     <td><span class="status ${statusClass}">${app.status}</span></td>
-                    <td>
-                        ${app.status === "В очікуванні"
-            ? `
-                            <button class="btn-sm btn-edit" title="Схвалити" onclick="approveVolunteer(${app.id})"><i class="fas fa-check"></i></button>
-                            <button class="btn-sm btn-delete" title="Відхилити" onclick="rejectVolunteer(${app.id})"><i class="fas fa-times"></i></button>
-                        `
-            : '<small style="color: #6b7280; font-style: italic;">Опрацьовано</small>'
-          }
-                    </td>
+                    <td>${actions}</td>
                 `;
         tbody.appendChild(tr);
       });
+    }
+
+    function openApproveModal(id, maxHours) {
+      document.getElementById('approve-request-id').value = id;
+      document.getElementById('approve-hours').max = maxHours;
+      document.getElementById('approve-hours').value = maxHours;
+      document.getElementById('approve-modal').style.display = 'flex';
+    }
+
+    function closeApproveModal() {
+      document.getElementById('approve-modal').style.display = 'none';
+    }
+
+    function openCompleteModal(id, maxHours) {
+      document.getElementById('complete-request-id').value = id;
+      document.getElementById('complete-hours').max = maxHours;
+      document.getElementById('complete-hours').value = maxHours;
+      document.getElementById('complete-modal').style.display = 'flex';
+    }
+
+    function closeCompleteModal() {
+      document.getElementById('complete-modal').style.display = 'none';
+    }
+
+    function completeVolunteer() {
+      const id = document.getElementById('complete-request-id').value;
+      const hours = document.getElementById('complete-hours').value;
+      window.location.href = `/manage-request/${id}/complete/?hours=${hours}`;
+    }
+
+    function toggleStar(id) {
+      window.location.href = `/toggle-star/${id}/`;
+    }
+
+    function approveVolunteer() {
+      const id = document.getElementById('approve-request-id').value;
+      const hours = document.getElementById('approve-hours').value;
+      window.location.href = `/manage-request/${id}/approve/?hours=${hours}`;
     }
 
     function approveVolunteer(id) {
@@ -730,6 +809,17 @@
       if (confirm("Ви впевнені, що хочете відхилити цю заявку?")) {
         window.location.href = `/manage-request/${id}/reject/`;
       }
+    }
+
+    function openReportModal(requestId, volunteerName) {
+      document.getElementById('report-request-id').value = requestId;
+      document.getElementById('report-volunteer-name').innerText = volunteerName;
+      document.getElementById('report-form').action = '/report-volunteer/' + requestId + '/';
+      document.getElementById('report-modal').style.display = 'flex';
+    }
+
+    function closeReportModal() {
+      document.getElementById('report-modal').style.display = 'none';
     }
 
     function deleteEvent(id) {
