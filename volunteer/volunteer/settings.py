@@ -81,7 +81,7 @@ WSGI_APPLICATION = 'volunteer.wsgi.application'
 
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.environ.get("DATABASE_URL"),
+        default="postgresql://diploma_3vq5_user:sRSgXuIJCxJofVwo7xIqaKDee1LVNWhp@dpg-d6fchbi4d50c73ea6tmg-a/diploma_3vq5",
         conn_max_age=600,
         ssl_require=True
     )
