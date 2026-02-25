@@ -18,7 +18,12 @@
             <i class="fas fa-hand-holding-heart brand-icon" aria-hidden="true"></i>
             <div class="brand-name">VolunTeer</div>
         </div>
-        <ul class="nav-links">
+        <div class="hamburger" onclick="toggleMenu()" aria-label="Menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <ul class="nav-links" id="navLinks">
             <li><a href="#home">Головна</a></li>
             <li><a href="#about">Про нас</a></li>
             <li><a href="#features">Можливості</a></li>
@@ -77,6 +82,24 @@
             <a href="#"><i class="fab fa-telegram"></i></a>
         </div>
     </footer>
+
+    <script>
+        function toggleMenu() {
+            const navLinks = document.getElementById('navLinks');
+            const hamburger = document.querySelector('.hamburger');
+            navLinks.classList.toggle('active');
+            hamburger.classList.toggle('active');
+        }
+
+        document.querySelectorAll('.nav-links a').forEach(link => {
+            link.addEventListener('click', () => {
+                const navLinks = document.getElementById('navLinks');
+                const hamburger = document.querySelector('.hamburger');
+                navLinks.classList.remove('active');
+                hamburger.classList.remove('active');
+            });
+        });
+    </script>
 
 </body>
 </html>

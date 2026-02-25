@@ -343,6 +343,9 @@
   <div class="main-content">
     <header class="top-bar">
       <div class="top-bar-left">
+        <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Menu">
+          <i class="fas fa-bars"></i>
+        </button>
         <div class="brand">
           <h2>Панель Адміністратора</h2>
           <p class="subtitle">Керуйте подіями та волонтерами</p>
@@ -1152,6 +1155,33 @@
         window.location.href = `/delete-user/${name}/`;
       }
     }
+
+    function toggleMobileMenu() {
+      var sidebar = document.querySelector('.sidebar');
+      var overlay = document.querySelector('.mobile-menu-overlay');
+      if (sidebar.classList.contains('mobile-open')) {
+        sidebar.classList.remove('mobile-open');
+        if (overlay) overlay.remove();
+      } else {
+        sidebar.classList.add('mobile-open');
+        var newOverlay = document.createElement('div');
+        newOverlay.className = 'mobile-menu-overlay';
+        newOverlay.onclick = function() {
+          sidebar.classList.remove('mobile-open');
+          this.remove();
+        };
+        document.body.appendChild(newOverlay);
+      }
+    }
+
+    document.querySelectorAll('.nav-links a').forEach(function(link) {
+      link.addEventListener('click', function() {
+        var sidebar = document.querySelector('.sidebar');
+        var overlay = document.querySelector('.mobile-menu-overlay');
+        sidebar.classList.remove('mobile-open');
+        if (overlay) overlay.remove();
+      });
+    });
 
     function toggleSelectAllStudents() {
       const selectAll = document.getElementById('select-all-students');
